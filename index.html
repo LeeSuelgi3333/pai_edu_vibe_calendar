@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 디지털 기반 문제해결 프로젝트</title>
+<style>
+  :root {
+    --color-background-primary: #ffffff;
+    --color-background-secondary: #f7f6f2;
+    --color-background-tertiary: #efede6;
+    --color-text-primary: #1a1a1a;
+    --color-text-secondary: #6b6a63;
+    --color-text-tertiary: #9a988f;
+    --color-border-tertiary: rgba(0,0,0,0.1);
+    --color-border-secondary: rgba(0,0,0,0.2);
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-background-primary: #1f1f1c;
+      --color-background-secondary: #2a2a27;
+      --color-background-tertiary: #242421;
+      --color-text-primary: #f5f4ef;
+      --color-text-secondary: #a8a69d;
+      --color-text-tertiary: #77756c;
+      --color-border-tertiary: rgba(255,255,255,0.12);
+      --color-border-secondary: rgba(255,255,255,0.22);
+    }
+  }
+  body {
+    margin: 0;
+    padding: 2rem;
+    background: var(--color-background-tertiary);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+  }
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: var(--color-background-primary);
+    padding: 1.5rem 2rem;
+    border-radius: var(--border-radius-lg);
+    border: 0.5px solid var(--color-border-tertiary);
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 500;
+    margin: 0 0 1.5rem;
+  }
+  .cal-wrap { font-family: var(--font-sans); padding: 0.5rem 0; }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; gap: 12px; flex-wrap: wrap; }
+  .month-nav { display: flex; align-items: center; gap: 8px; }
+  .month-title { font-size: 18px; font-weight: 500; min-width: 100px; }
+  .summary { font-size: 13px; color: var(--color-text-secondary); }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .legend-wrap { position: relative; }
+  .legend-toggle { display: inline-flex; align-items: center; gap: 8px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 6px 12px; font-size: 13px; cursor: pointer; font-family: var(--font-sans); color: var(--color-text-primary); }
+  .legend-toggle:hover { background: var(--color-background-secondary); }
+  .legend-toggle .chevron { font-size: 10px; color: var(--color-text-secondary); transition: transform 0.15s; }
+  .legend-toggle.open .chevron { transform: rotate(180deg); }
+  .legend-count { font-size: 12px; color: var(--color-text-secondary); }
+  .legend-dropdown { display: none; position: absolute; top: calc(100% + 4px); left: 0; z-index: 10; background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 8px; min-width: 260px; max-height: 320px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .legend-dropdown.visible { display: block; }
+  .legend-actions { display: flex; gap: 8px; padding: 0 4px 8px; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 6px; }
+  .legend-action-btn { background: transparent; border: none; color: var(--color-text-secondary); font-size: 12px; cursor: pointer; padding: 2px 4px; font-family: var(--font-sans); }
+  .legend-action-btn:hover { color: var(--color-text-primary); }
+  .legend-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--border-radius-md); cursor: pointer; font-size: 13px; transition: background 0.1s; }
+  .legend-item:hover { background: var(--color-background-secondary); }
+  .legend-checkbox { width: 14px; height: 14px; border: 1px solid var(--color-border-secondary); border-radius: 3px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--color-background-primary); }
+  .legend-checkbox.checked { background: var(--color-text-primary); border-color: var(--color-text-primary); }
+  .legend-checkbox.checked::after { content: ''; width: 8px; height: 4px; border-left: 1.5px solid var(--color-background-primary); border-bottom: 1.5px solid var(--color-background-primary); transform: rotate(-45deg) translate(1px, -1px); }
+  .legend-chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+  .legend-chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .legend-radio { width: 14px; height: 14px; border: 1px solid var(--color-border-secondary); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--color-background-primary); }
+  .legend-radio.selected { border-color: var(--color-text-primary); border-width: 1.5px; }
+  .legend-radio.selected::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--color-text-primary); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .dow { font-size: 12px; color: var(--color-text-secondary); text-align: center; padding: 6px 0; font-weight: 500; }
+  .dow.sun { color: #A32D2D; }
+  .dow.sat { color: #185FA5; }
+  .day { min-height: 92px; padding: 6px; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); display: flex; flex-direction: column; gap: 3px; }
+  .day.empty { background: transparent; border: none; }
+  .day-num { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); }
+  .day-num.sun { color: #A32D2D; }
+  .day-num.sat { color: #185FA5; }
+  .day.has-events { background: var(--color-background-secondary); }
+  .school-pill { font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 500; line-height: 1.3; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .detail-panel { margin-top: 1rem; padding: 12px 14px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); display: none; }
+  .detail-panel.visible { display: block; }
+  .detail-date { font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+  .detail-event { font-size: 13px; padding: 6px 0; border-top: 0.5px solid var(--color-border-tertiary); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .detail-event:first-of-type { border-top: none; }
+  .detail-school { font-weight: 500; }
+  .detail-meta { color: var(--color-text-secondary); font-size: 12px; }
+  .nav-btn { background: transparent; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 4px 10px; cursor: pointer; font-family: var(--font-sans); font-size: 13px; color: var(--color-text-primary); }
+  .nav-btn:hover { background: var(--color-background-secondary); }
+  .nav-btn:active { transform: scale(0.98); }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>AI 디지털 기반 문제해결 프로젝트</h1>
+
+<div class="cal-wrap">
+  <div class="cal-header">
+    <div class="month-nav">
+      <button class="nav-btn" id="prev-btn">‹</button>
+      <div class="month-title" id="month-title">2026년 5월</div>
+      <button class="nav-btn" id="next-btn">›</button>
+    </div>
+    <div class="summary" id="summary">총 0건</div>
+  </div>
+
+  <div class="filter-row">
+    <div class="legend-wrap">
+      <button class="legend-toggle" id="legend-toggle">
+        <span>학교 필터</span>
+        <span class="legend-count" id="legend-count"></span>
+        <span class="chevron">▼</span>
+      </button>
+      <div class="legend-dropdown" id="legend-dropdown">
+        <div class="legend-actions">
+          <button class="legend-action-btn" id="legend-all">전체 선택</button>
+          <button class="legend-action-btn" id="legend-none">전체 해제</button>
+        </div>
+        <div id="legend-list"></div>
+      </div>
+    </div>
+
+    <div class="legend-wrap">
+      <button class="legend-toggle" id="instructor-toggle">
+        <span>강사</span>
+        <span class="legend-count" id="instructor-count">전체</span>
+        <span class="chevron">▼</span>
+      </button>
+      <div class="legend-dropdown" id="instructor-dropdown">
+        <div id="instructor-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cal-grid" id="grid"></div>
+
+  <div class="detail-panel" id="detail"></div>
+</div>
+</div>
+
+<script>
+(function() {
+  const schoolColors = {
+    '가좌고':      { bg: '#CECBF6', fg: '#26215C' },  // 퍼플 (진함)
+    '갈산중':      { bg: '#C0DD97', fg: '#173404' },  // 그린 (진함)
+    '만수중':      { bg: '#FAC775', fg: '#633806' },  // 앰버 (따뜻한 오렌지)
+    '명신여고':    { bg: '#ED93B1', fg: '#4B1528' },  // 핑크 (진함)
+    '부광고':      { bg: '#85B7EB', fg: '#042C53' },  // 블루 (진함)
+    '서곶중':      { bg: '#EAF3DE', fg: '#27500A' },  // 그린 (연함)
+    '선화여중':    { bg: '#FAEEDA', fg: '#633806' },  // 앰버 (연함)
+    '세계로국제중': { bg: '#B4B2A9', fg: '#2C2C2A' },  // 그레이 (진함)
+    '신현여중':    { bg: '#F09595', fg: '#501313' },  // 레드 (진함)
+    '아라고':      { bg: '#EEEDFE', fg: '#3C3489' },  // 퍼플 (연함)
+    '연송고':      { bg: '#5DCAA5', fg: '#04342C' },  // 틸 (진함)
+    '인주중':      { bg: '#F0997B', fg: '#4A1B0C' },  // 코랄 (진함)
+    '작전여고':    { bg: '#FBEAF0', fg: '#72243E' },  // 핑크 (연함)
+    '청라고':      { bg: '#E6F1FB', fg: '#0C447C' },  // 블루 (연함)
+    '학익고':      { bg: '#E1F5EE', fg: '#085041' }   // 틸 (연함)
+  };
+
+  const rawEvents = [
+    [5,11,'가좌고','17:30–20:00','변모세','김현숙'],
+    [5,18,'가좌고','17:30–20:00','변모세','김현숙'],
+    [6,1,'가좌고','17:30–20:00','변모세','김현숙'],
+    [6,13,'가좌고','09:00–11:30','변모세','김현숙'],
+    [7,6,'가좌고','17:30–20:00','변모세','김현숙'],
+    [7,13,'가좌고','17:30–20:00','변모세','김현숙'],
+    [7,21,'가좌고','13:00–15:30','변모세','김현숙'],
+    [8,18,'가좌고','16:00–18:30','변모세','김현숙'],
+    [8,24,'가좌고','17:30–20:00','변모세','김현숙'],
+    [5,6,'갈산중','13:20~14:50','표진우',''],
+    [6,4,'갈산중','13:20~14:50','표진우','김현숙'],
+    [7,13,'갈산중','13:20~14:50','표진우','박미옥'],
+    [8,27,'갈산중','13:20~14:50','표진우','박미옥'],
+    [4,24,'만수중','15:30-16:50','최달','박주연'],
+    [5,8,'만수중','15:30-16:50','최달','박주연'],
+    [5,15,'만수중','15:30-16:50','최달','김현숙'],
+    [5,29,'만수중','15:30-16:50','최달','박주연'],
+    [6,5,'만수중','15:30-16:50','최달','박주연'],
+    [6,12,'만수중','15:30-16:50','최달','박주연'],
+    [6,19,'만수중','15:30-16:50','최달','박주연'],
+    [7,3,'만수중','15:30-16:50','박주연','박주연'],
+    [7,10,'만수중','15:30-16:50','최달','박주연'],
+    [5,13,'명신여고','17:00-19:50','최달','위소연'],
+    [5,20,'명신여고','17:00-19:50','최달','위소연'],
+    [6,17,'명신여고','17:00-19:50','최달','위소연'],
+    [7,8,'명신여고','17:00-19:50','최달','위소연'],
+    [7,15,'명신여고','17:00-19:50','최달','위소연'],
+    [8,19,'명신여고','17:00-19:50','최달','위소연'],
+    [5,8,'부광고','13:30~14:30','김현숙',''],
+    [6,5,'부광고','13:30~14:30','김현숙',''],
+    [7,10,'부광고','13:30~14:30','김현숙',''],
+    [7,22,'부광고','09:00~12:00','김현숙',''],
+    [7,23,'부광고','09:00~12:00','김현숙',''],
+    [7,24,'부광고','09:00~12:00','김현숙',''],
+    [5,29,'서곶중','13:20~15:35','정진영','이종혁'],
+    [7,9,'서곶중','13:20~15:35','정진영','이종혁'],
+    [8,27,'서곶중','13:20~15:35','정진영','이종혁'],
+    [4,28,'선화여중','15:30~17:00','한혜경','김현숙'],
+    [5,12,'선화여중','15:30~17:00','한혜경','최달'],
+    [5,26,'선화여중','15:30~17:00','한혜경','최달'],
+    [6,16,'선화여중','15:30~17:00','한혜경','최달'],
+    [6,30,'선화여중','15:30~17:00','한혜경','최달'],
+    [7,14,'선화여중','15:30~17:00','한혜경','최달'],
+    [7,21,'선화여중','15:30~17:00','한혜경','최달'],
+    [8,25,'선화여중','15:30~17:00','한혜경','최달'],
+    [5,6,'세계로국제중','13:25-15:05','변모세',''],
+    [5,13,'세계로국제중','13:25-15:05','변모세',''],
+    [5,27,'세계로국제중','13:25-15:05','변모세',''],
+    [6,10,'세계로국제중','13:25-15:05','변모세',''],
+    [6,17,'세계로국제중','13:25-15:05','변모세',''],
+    [6,24,'세계로국제중','13:25-15:05','변모세',''],
+    [7,1,'세계로국제중','13:25-15:05','변모세',''],
+    [7,15,'세계로국제중','13:25-15:05','변모세',''],
+    [5,8,'신현여중','15:30-17:00','박영아',''],
+    [5,22,'신현여중','15:30-17:00','박영아',''],
+    [5,29,'신현여중','15:30-17:00','박영아',''],
+    [6,12,'신현여중','15:30-17:00','박영아',''],
+    [6,19,'신현여중','15:30-17:00','박영아',''],
+    [7,3,'신현여중','15:30-17:00','박영아',''],
+    [7,10,'신현여중','15:30-17:00','박영아',''],
+    [8,21,'신현여중','15:30-17:00','박영아',''],
+    [8,28,'신현여중','15:30-17:00','박영아',''],
+    [5,6,'아라고','15:50-18:00','김현숙','양미선'],
+    [5,13,'아라고','15:50-18:00','김현숙','양미선'],
+    [5,20,'아라고','15:50-18:00','김현숙','양미선'],
+    [5,27,'아라고','15:50-18:00','김현숙','이종혁'],
+    [6,10,'아라고','15:50-18:00','김현숙','양미선'],
+    [7,8,'아라고','15:50-18:00','김현숙','양미선'],
+    [7,15,'아라고','15:50-18:00','김현숙','양미선'],
+    [5,6,'연송고','14:00-16:00','정진영',''],
+    [5,11,'연송고','15:00-17:00','최달',''],
+    [6,1,'연송고','15:00-17:00','최달',''],
+    [6,8,'연송고','15:00-17:00','최달',''],
+    [7,13,'연송고','15:00-17:00','최달',''],
+    [7,15,'연송고','14:00-16:00','최달',''],
+    [4,30,'인주중','15:30~17:00','한혜경',''],
+    [5,7,'인주중','15:30~17:00','한혜경',''],
+    [5,28,'인주중','15:30~17:00','한혜경',''],
+    [6,4,'인주중','15:30~17:00','한혜경',''],
+    [6,11,'인주중','15:30~17:00','한혜경',''],
+    [7,9,'인주중','15:30~17:00','한혜경',''],
+    [7,16,'인주중','15:30~17:00','한혜경',''],
+    [8,20,'인주중','15:30~17:00','한혜경',''],
+    [8,27,'인주중','15:30~17:00','한혜경',''],
+    [5,11,'작전여고','15:30~17:30','표진우',''],
+    [5,18,'작전여고','15:30~17:30','표진우',''],
+    [6,1,'작전여고','15:30~17:30','표진우',''],
+    [6,8,'작전여고','15:30~17:30','표진우',''],
+    [7,13,'작전여고','15:30~17:30','표진우',''],
+    [7,20,'작전여고','15:30~17:30','표진우',''],
+    [8,24,'작전여고','15:30~17:30','표진우',''],
+    [8,28,'작전여고','15:30~17:30','표진우',''],
+    [5,8,'청라고','15:40-17:20','전인숙',''],
+    [5,15,'청라고','15:40-17:20','전인숙',''],
+    [5,22,'청라고','15:40-17:20','전인숙',''],
+    [5,29,'청라고','14:40-16:20','전인숙',''],
+    [6,5,'청라고','15:40-17:20','전인숙',''],
+    [6,12,'청라고','15:40-17:20','전인숙',''],
+    [7,10,'청라고','15:40-17:20','전인숙',''],
+    [7,15,'청라고','15:40-17:20','전인숙',''],
+    [8,14,'청라고','15:40-17:20','전인숙',''],
+    [5,22,'학익고','13:40-16:20','위소연','김현숙'],
+    [6,12,'학익고','13:40-16:20','위소연','김현숙'],
+    [7,10,'학익고','13:40-16:20','위소연','양미선'],
+    [8,21,'학익고','13:40-16:20','위소연','김현숙']
+  ];
+
+  const eventsByDate = {};
+  rawEvents.forEach(e => {
+    const key = e[0] + '-' + e[1];
+    if (!eventsByDate[key]) eventsByDate[key] = [];
+    eventsByDate[key].push({
+      month: e[0], day: e[1], school: e[2], time: e[3], main: e[4], sub: e[5]
+    });
+  });
+
+  const schools = Object.keys(schoolColors);
+  const hiddenSchools = new Set();
+
+  // 강사 목록 추출 - 주강사와 보조강사 모두 포함 (중복 제거, 정렬)
+  const instructorSet = new Set();
+  rawEvents.forEach(e => {
+    if (e[4]) instructorSet.add(e[4]);
+    if (e[5]) instructorSet.add(e[5]);
+  });
+  const instructors = [...instructorSet].sort();
+  let selectedInstructor = null; // null = 모든 강사
+
+  let currentMonth = 5;
+  const minMonth = 4, maxMonth = 8;
+
+  const monthTitleEl = document.getElementById('month-title');
+  const gridEl = document.getElementById('grid');
+  const summaryEl = document.getElementById('summary');
+  const detailEl = document.getElementById('detail');
+  const legendListEl = document.getElementById('legend-list');
+  const legendToggleEl = document.getElementById('legend-toggle');
+  const legendDropdownEl = document.getElementById('legend-dropdown');
+  const legendCountEl = document.getElementById('legend-count');
+
+  const instructorListEl = document.getElementById('instructor-list');
+  const instructorToggleEl = document.getElementById('instructor-toggle');
+  const instructorDropdownEl = document.getElementById('instructor-dropdown');
+  const instructorCountEl = document.getElementById('instructor-count');
+
+  function renderLegend() {
+    legendListEl.innerHTML = '';
+    schools.forEach(s => {
+      const c = schoolColors[s];
+      const checked = !hiddenSchools.has(s);
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML =
+        '<span class="legend-checkbox' + (checked ? ' checked' : '') + '"></span>' +
+        '<span class="legend-chip" style="background:' + c.bg + ';color:' + c.fg + '">' +
+          '<span class="legend-chip-dot" style="background:' + c.fg + '"></span>' + s +
+        '</span>';
+      item.onclick = (ev) => {
+        ev.stopPropagation();
+        if (hiddenSchools.has(s)) hiddenSchools.delete(s);
+        else hiddenSchools.add(s);
+        renderLegend();
+        renderCalendar();
+      };
+      legendListEl.appendChild(item);
+    });
+    const visible = schools.length - hiddenSchools.size;
+    legendCountEl.textContent = visible + '/' + schools.length;
+  }
+
+  function renderInstructorFilter() {
+    instructorListEl.innerHTML = '';
+
+    // "모든 강사" 옵션
+    const allItem = document.createElement('div');
+    allItem.className = 'legend-item';
+    const allSelected = selectedInstructor === null;
+    allItem.innerHTML =
+      '<span class="legend-radio' + (allSelected ? ' selected' : '') + '"></span>' +
+      '<span style="font-size:13px;font-weight:500">모든 강사</span>';
+    allItem.onclick = (ev) => {
+      ev.stopPropagation();
+      selectedInstructor = null;
+      renderInstructorFilter();
+      renderCalendar();
+      instructorDropdownEl.classList.remove('visible');
+      instructorToggleEl.classList.remove('open');
+    };
+    instructorListEl.appendChild(allItem);
+
+    // 구분선
+    const divider = document.createElement('div');
+    divider.style.cssText = 'height:0.5px;background:var(--color-border-tertiary);margin:6px 4px;';
+    instructorListEl.appendChild(divider);
+
+    // 강사 개별 옵션
+    instructors.forEach(name => {
+      const selected = selectedInstructor === name;
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML =
+        '<span class="legend-radio' + (selected ? ' selected' : '') + '"></span>' +
+        '<span style="font-size:13px">' + name + '</span>';
+      item.onclick = (ev) => {
+        ev.stopPropagation();
+        selectedInstructor = name;
+        renderInstructorFilter();
+        renderCalendar();
+        instructorDropdownEl.classList.remove('visible');
+        instructorToggleEl.classList.remove('open');
+      };
+      instructorListEl.appendChild(item);
+    });
+
+    // 버튼의 카운트 영역을 현재 선택된 강사 이름으로 교체
+    instructorCountEl.textContent = selectedInstructor === null ? '전체' : selectedInstructor;
+  }
+
+  // 학교 토글 버튼
+  legendToggleEl.onclick = (ev) => {
+    ev.stopPropagation();
+    // 다른 드롭다운은 닫기
+    instructorDropdownEl.classList.remove('visible');
+    instructorToggleEl.classList.remove('open');
+    legendDropdownEl.classList.toggle('visible');
+    legendToggleEl.classList.toggle('open');
+  };
+  // 강사 토글 버튼
+  instructorToggleEl.onclick = (ev) => {
+    ev.stopPropagation();
+    legendDropdownEl.classList.remove('visible');
+    legendToggleEl.classList.remove('open');
+    instructorDropdownEl.classList.toggle('visible');
+    instructorToggleEl.classList.toggle('open');
+  };
+  // 바깥 클릭 시 둘 다 닫기
+  document.addEventListener('click', (ev) => {
+    if (!legendDropdownEl.contains(ev.target) && !legendToggleEl.contains(ev.target)) {
+      legendDropdownEl.classList.remove('visible');
+      legendToggleEl.classList.remove('open');
+    }
+    if (!instructorDropdownEl.contains(ev.target) && !instructorToggleEl.contains(ev.target)) {
+      instructorDropdownEl.classList.remove('visible');
+      instructorToggleEl.classList.remove('open');
+    }
+  });
+  // 학교 전체 선택 / 해제
+  document.getElementById('legend-all').onclick = (ev) => {
+    ev.stopPropagation();
+    hiddenSchools.clear();
+    renderLegend();
+    renderCalendar();
+  };
+  document.getElementById('legend-none').onclick = (ev) => {
+    ev.stopPropagation();
+    schools.forEach(s => hiddenSchools.add(s));
+    renderLegend();
+    renderCalendar();
+  };
+  // 강사는 라디오 방식이므로 전체선택/해제 버튼 없음
+
+  function renderCalendar() {
+    monthTitleEl.textContent = '2026년 ' + currentMonth + '월';
+    gridEl.innerHTML = '';
+
+    const dows = ['일','월','화','수','목','금','토'];
+    dows.forEach((d, i) => {
+      const el = document.createElement('div');
+      el.className = 'dow' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '');
+      el.textContent = d;
+      gridEl.appendChild(el);
+    });
+
+    const firstDay = new Date(2026, currentMonth - 1, 1);
+    const startDow = firstDay.getDay();
+    const daysInMonth = new Date(2026, currentMonth, 0).getDate();
+
+    for (let i = 0; i < startDow; i++) {
+      const e = document.createElement('div');
+      e.className = 'day empty';
+      gridEl.appendChild(e);
+    }
+
+    let totalEvents = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dayEl = document.createElement('div');
+      const dow = new Date(2026, currentMonth - 1, d).getDay();
+      const key = currentMonth + '-' + d;
+      const events = (eventsByDate[key] || []).filter(ev => {
+        if (hiddenSchools.has(ev.school)) return false;
+        // 강사 필터: 선택된 강사가 없으면 전체 통과, 있으면 주/보조 중 하나로 참여한 이벤트만
+        if (selectedInstructor !== null) {
+          if (ev.main !== selectedInstructor && ev.sub !== selectedInstructor) return false;
+        }
+        return true;
+      });
+
+      dayEl.className = 'day' + (events.length > 0 ? ' has-events' : '');
+
+      const dayNum = document.createElement('div');
+      dayNum.className = 'day-num' + (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '');
+      dayNum.textContent = d;
+      dayEl.appendChild(dayNum);
+
+      const seen = new Set();
+      events.forEach(ev => {
+        if (seen.has(ev.school)) return;
+        seen.add(ev.school);
+        totalEvents++;
+        const c = schoolColors[ev.school];
+        const pill = document.createElement('div');
+        pill.className = 'school-pill';
+        pill.style.background = c.bg;
+        pill.style.color = c.fg;
+        pill.textContent = ev.school;
+        pill.onclick = () => showDetail(currentMonth, d, events);
+        dayEl.appendChild(pill);
+      });
+
+      if (events.length > 0) {
+        dayEl.style.cursor = 'pointer';
+        dayEl.onclick = (e) => {
+          if (e.target === dayEl || e.target === dayNum) showDetail(currentMonth, d, events);
+        };
+      }
+
+      gridEl.appendChild(dayEl);
+    }
+
+    summaryEl.textContent = currentMonth + '월 교육 ' + totalEvents + '건';
+    detailEl.classList.remove('visible');
+  }
+
+  function showDetail(month, day, events) {
+    const bySchool = {};
+    events.forEach(ev => {
+      if (!bySchool[ev.school]) bySchool[ev.school] = [];
+      bySchool[ev.school].push(ev);
+    });
+
+    let html = '<div class="detail-date">' + month + '월 ' + day + '일</div>';
+    Object.keys(bySchool).forEach(school => {
+      const evs = bySchool[school];
+      const c = schoolColors[school];
+      const ev = evs[0];
+      const instructors = [];
+      if (ev.main) instructors.push('주강사 ' + ev.main);
+      if (ev.sub) instructors.push('보조 ' + ev.sub);
+      html += '<div class="detail-event">' +
+        '<span class="detail-school" style="color:' + c.fg + '">● ' + school + '</span>' +
+        '<span class="detail-meta">' + ev.time + ' · ' + instructors.join(', ') + '</span>' +
+        '</div>';
+    });
+    detailEl.innerHTML = html;
+    detailEl.classList.add('visible');
+  }
+
+  document.getElementById('prev-btn').onclick = () => {
+    if (currentMonth > minMonth) { currentMonth--; renderCalendar(); }
+  };
+  document.getElementById('next-btn').onclick = () => {
+    if (currentMonth < maxMonth) { currentMonth++; renderCalendar(); }
+  };
+
+  renderLegend();
+  renderInstructorFilter();
+  renderCalendar();
+})();
+</script>
+</body>
+</html>
