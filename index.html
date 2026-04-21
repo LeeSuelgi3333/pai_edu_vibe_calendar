@@ -74,9 +74,6 @@
   .legend-checkbox.checked::after { content: ''; width: 8px; height: 4px; border-left: 1.5px solid var(--color-background-primary); border-bottom: 1.5px solid var(--color-background-primary); transform: rotate(-45deg) translate(1px, -1px); }
   .legend-chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; }
   .legend-chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .legend-radio { width: 14px; height: 14px; border: 1px solid var(--color-border-secondary); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--color-background-primary); }
-  .legend-radio.selected { border-color: var(--color-text-primary); border-width: 1.5px; }
-  .legend-radio.selected::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--color-text-primary); }
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
   .dow { font-size: 12px; color: var(--color-text-secondary); text-align: center; padding: 6px 0; font-weight: 500; }
   .dow.sun { color: #A32D2D; }
@@ -132,11 +129,15 @@
 
     <div class="legend-wrap">
       <button class="legend-toggle" id="instructor-toggle">
-        <span>강사</span>
-        <span class="legend-count" id="instructor-count">전체</span>
+        <span>강사 필터</span>
+        <span class="legend-count" id="instructor-count"></span>
         <span class="chevron">▼</span>
       </button>
       <div class="legend-dropdown" id="instructor-dropdown">
+        <div class="legend-actions">
+          <button class="legend-action-btn" id="instructor-all">전체 선택</button>
+          <button class="legend-action-btn" id="instructor-none">전체 해제</button>
+        </div>
         <div id="instructor-list"></div>
       </div>
     </div>
@@ -151,21 +152,21 @@
 <script>
 (function() {
   const schoolColors = {
-    '가좌고':      { bg: '#CECBF6', fg: '#26215C' },  // 퍼플 (진함)
-    '갈산중':      { bg: '#C0DD97', fg: '#173404' },  // 그린 (진함)
-    '만수중':      { bg: '#FAC775', fg: '#633806' },  // 앰버 (따뜻한 오렌지)
-    '명신여고':    { bg: '#ED93B1', fg: '#4B1528' },  // 핑크 (진함)
-    '부광고':      { bg: '#85B7EB', fg: '#042C53' },  // 블루 (진함)
-    '서곶중':      { bg: '#EAF3DE', fg: '#27500A' },  // 그린 (연함)
-    '선화여중':    { bg: '#FAEEDA', fg: '#633806' },  // 앰버 (연함)
-    '세계로국제중': { bg: '#B4B2A9', fg: '#2C2C2A' },  // 그레이 (진함)
-    '신현여중':    { bg: '#F09595', fg: '#501313' },  // 레드 (진함)
-    '아라고':      { bg: '#EEEDFE', fg: '#3C3489' },  // 퍼플 (연함)
-    '연송고':      { bg: '#5DCAA5', fg: '#04342C' },  // 틸 (진함)
-    '인주중':      { bg: '#F0997B', fg: '#4A1B0C' },  // 코랄 (진함)
-    '작전여고':    { bg: '#FBEAF0', fg: '#72243E' },  // 핑크 (연함)
-    '청라고':      { bg: '#E6F1FB', fg: '#0C447C' },  // 블루 (연함)
-    '학익고':      { bg: '#E1F5EE', fg: '#085041' }   // 틸 (연함)
+    '가좌고':      { bg: '#EEEDFE', fg: '#3C3489' },
+    '갈산중':      { bg: '#EAF3DE', fg: '#27500A' },
+    '만수중':      { bg: '#FAEEDA', fg: '#854F0B' },
+    '명신여고':    { bg: '#FBEAF0', fg: '#72243E' },
+    '부광고':      { bg: '#E6F1FB', fg: '#0C447C' },
+    '서곶중':      { bg: '#DDF0D0', fg: '#3B6D11' },
+    '선화여중':    { bg: '#F7E4C7', fg: '#633806' },
+    '세계로국제중': { bg: '#EBEAE3', fg: '#444441' },
+    '신현여중':    { bg: '#FCEBEB', fg: '#A32D2D' },
+    '아라고':      { bg: '#E5E3FB', fg: '#26215C' },
+    '연송고':      { bg: '#E1F5EE', fg: '#085041' },
+    '인주중':      { bg: '#FAECE7', fg: '#993C1D' },
+    '작전여고':    { bg: '#F9DDE7', fg: '#993556' },
+    '청라고':      { bg: '#DBEAF8', fg: '#185FA5' },
+    '학익고':      { bg: '#D4EDDF', fg: '#0F6E56' }
   };
 
   const rawEvents = [
@@ -295,7 +296,7 @@
     if (e[5]) instructorSet.add(e[5]);
   });
   const instructors = [...instructorSet].sort();
-  let selectedInstructor = null; // null = 모든 강사
+  const hiddenInstructors = new Set();
 
   let currentMonth = 5;
   const minMonth = 4, maxMonth = 8;
@@ -341,50 +342,24 @@
 
   function renderInstructorFilter() {
     instructorListEl.innerHTML = '';
-
-    // "모든 강사" 옵션
-    const allItem = document.createElement('div');
-    allItem.className = 'legend-item';
-    const allSelected = selectedInstructor === null;
-    allItem.innerHTML =
-      '<span class="legend-radio' + (allSelected ? ' selected' : '') + '"></span>' +
-      '<span style="font-size:13px;font-weight:500">모든 강사</span>';
-    allItem.onclick = (ev) => {
-      ev.stopPropagation();
-      selectedInstructor = null;
-      renderInstructorFilter();
-      renderCalendar();
-      instructorDropdownEl.classList.remove('visible');
-      instructorToggleEl.classList.remove('open');
-    };
-    instructorListEl.appendChild(allItem);
-
-    // 구분선
-    const divider = document.createElement('div');
-    divider.style.cssText = 'height:0.5px;background:var(--color-border-tertiary);margin:6px 4px;';
-    instructorListEl.appendChild(divider);
-
-    // 강사 개별 옵션
     instructors.forEach(name => {
-      const selected = selectedInstructor === name;
+      const checked = !hiddenInstructors.has(name);
       const item = document.createElement('div');
       item.className = 'legend-item';
       item.innerHTML =
-        '<span class="legend-radio' + (selected ? ' selected' : '') + '"></span>' +
+        '<span class="legend-checkbox' + (checked ? ' checked' : '') + '"></span>' +
         '<span style="font-size:13px">' + name + '</span>';
       item.onclick = (ev) => {
         ev.stopPropagation();
-        selectedInstructor = name;
+        if (hiddenInstructors.has(name)) hiddenInstructors.delete(name);
+        else hiddenInstructors.add(name);
         renderInstructorFilter();
         renderCalendar();
-        instructorDropdownEl.classList.remove('visible');
-        instructorToggleEl.classList.remove('open');
       };
       instructorListEl.appendChild(item);
     });
-
-    // 버튼의 카운트 영역을 현재 선택된 강사 이름으로 교체
-    instructorCountEl.textContent = selectedInstructor === null ? '전체' : selectedInstructor;
+    const visible = instructors.length - hiddenInstructors.size;
+    instructorCountEl.textContent = visible + '/' + instructors.length;
   }
 
   // 학교 토글 버튼
@@ -428,7 +403,19 @@
     renderLegend();
     renderCalendar();
   };
-  // 강사는 라디오 방식이므로 전체선택/해제 버튼 없음
+  // 강사 전체 선택 / 해제
+  document.getElementById('instructor-all').onclick = (ev) => {
+    ev.stopPropagation();
+    hiddenInstructors.clear();
+    renderInstructorFilter();
+    renderCalendar();
+  };
+  document.getElementById('instructor-none').onclick = (ev) => {
+    ev.stopPropagation();
+    instructors.forEach(n => hiddenInstructors.add(n));
+    renderInstructorFilter();
+    renderCalendar();
+  };
 
   function renderCalendar() {
     monthTitleEl.textContent = '2026년 ' + currentMonth + '월';
@@ -459,11 +446,10 @@
       const key = currentMonth + '-' + d;
       const events = (eventsByDate[key] || []).filter(ev => {
         if (hiddenSchools.has(ev.school)) return false;
-        // 강사 필터: 선택된 강사가 없으면 전체 통과, 있으면 주/보조 중 하나로 참여한 이벤트만
-        if (selectedInstructor !== null) {
-          if (ev.main !== selectedInstructor && ev.sub !== selectedInstructor) return false;
-        }
-        return true;
+        // 이벤트에 참여한 강사들 (주/보조)
+        const involved = [ev.main, ev.sub].filter(n => n);
+        // 그 중 최소 한 명이라도 선택된(hidden이 아닌) 상태여야 표시
+        return involved.some(n => !hiddenInstructors.has(n));
       });
 
       dayEl.className = 'day' + (events.length > 0 ? ' has-events' : '');
